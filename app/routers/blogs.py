@@ -48,7 +48,7 @@ def create_blog(
             title=title,
             content=content,
             image=image_url,
-            owner_id=current_user.id
+            owner_id=current_user
         )
         db.add(blog)
         db.commit()
@@ -74,7 +74,19 @@ def create_blog(
 @router.get("/", response_model=List[BlogResponse])
 def get_all_blogs(db: Session = Depends(get_db_session)):
     blogs = db.query(Blog).all()
-    return blogs
+    blog_list = []
+    for blog in blogs:
+        author = None
+        if hasattr(blog, 'owner') and blog.owner:
+            author = blog.owner.username
+        else:
+            # Fallback: fetch user from User model if relationship not set up
+            user = db.query(User).filter(User.id == blog.owner_id).first()
+            author = user.username if user else None
+        blog_dict = blog.__dict__.copy()
+        blog_dict['author'] = author
+        blog_list.append(blog_dict)
+    return blog_list
 
 # Get a specific blog post by ID (GET /blogs/{blog_id})
 @router.get("/{blog_id}", response_model=BlogResponse)
@@ -83,9 +95,12 @@ def get_blog(
     db: Session = Depends(get_db_session)
 ):
     blog = db.query(Blog).filter(Blog.id == blog_id).first()
+    print(blog)
     if not blog:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blog not found")
-    return blog
+    return {
+        
+    }
 
 # Update a blog post (PUT /blogs/{blog_id})
 @router.put("/{blog_id}", response_model=BlogResponse)

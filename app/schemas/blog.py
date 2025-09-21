@@ -21,6 +21,7 @@ class BlogUpdate(BaseModel):
 class BlogResponse(BlogBase):
     id: int
     owner_id: int
+    author: Optional[str] = None
 
     class Config:
         from_attributes = True
