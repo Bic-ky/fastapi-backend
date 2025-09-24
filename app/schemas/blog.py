@@ -18,10 +18,13 @@ class BlogUpdate(BaseModel):
     image: Optional[HttpUrl] = None
 
 # Response schema
-class BlogResponse(BlogBase):
+class BlogResponse(BaseModel):
     id: int
+    title: str
+    content: Optional[str] = None
+    image: Optional[str] = None
     owner_id: int
-    author: Optional[str] = None
+    author: Optional[str] = None  # <-- add this
 
     class Config:
-        from_attributes = True
+        orm_mode = True

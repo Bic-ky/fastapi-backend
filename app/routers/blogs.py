@@ -1,5 +1,5 @@
 import os
-from fastapi import APIRouter, Depends, UploadFile, File, HTTPException , status
+from fastapi import APIRouter, Depends, UploadFile, File, Form, HTTPException , status
 from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from typing import List
@@ -14,46 +14,39 @@ router = APIRouter(prefix="/blogs", tags=["blogs"])
 
 ### CRUD Operations ###
 
-@router.post("/blogs/", response_model=BlogResponse)
+@router.post("/", response_model=BlogResponse)
 def create_blog(
-    title: str,
-    content: str,
+    title: str = Form(...),
+    content: str = Form(...),
     image: UploadFile = File(...),
     db: Session = Depends(get_db_session),
-    current_user=Depends(get_current_user),
+    current_user = Depends(get_current_user),
 ):
     try:
-        # Ensure static/images folder exists
         os.makedirs("static/images", exist_ok=True)
 
-        # Save uploaded file
+        # Save file
         file_location = f"static/images/{image.filename}"
         with open(file_location, "wb") as f:
             shutil.copyfileobj(image.file, f)
 
-        # Full URL for the image
+        # Build a public URL (see #3 below to mount /static)
         base_url = "http://127.0.0.1:8000"
-        image_url = f"{base_url}/{file_location}"
+        image_url = f"{base_url}/{file_location}" 
 
-        # Create blog
+        # Uniqueness check
         existing_blog = db.query(Blog).filter(Blog.title == title).first()
         if existing_blog:
             db.rollback()
             raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail=f"A blog with the title '{title}' already exists."
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"A blog with the title '{title}' already exists."
             )
-        
-        blog = Blog(
-            title=title,
-            content=content,
-            image=image_url,
-            owner_id=current_user
-        )
+
+        blog = Blog(title=title, content=content, image=image_url, owner=current_user)
         db.add(blog)
         db.commit()
         db.refresh(blog)
-
         return blog
 
     except IntegrityError:
@@ -68,7 +61,6 @@ def create_blog(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error creating blog: {str(e)}"
         )
-    
 
 # Get all blogs (GET /blogs/)
 @router.get("/", response_model=List[BlogResponse])
@@ -88,19 +80,21 @@ def get_all_blogs(db: Session = Depends(get_db_session)):
         blog_list.append(blog_dict)
     return blog_list
 
-# Get a specific blog post by ID (GET /blogs/{blog_id})
+# app/routers/blogs.py (or wherever your router is)
 @router.get("/{blog_id}", response_model=BlogResponse)
 def get_blog(
     blog_id: int,
     db: Session = Depends(get_db_session)
 ):
     blog = db.query(Blog).filter(Blog.id == blog_id).first()
-    print(blog)
     if not blog:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Blog not found")
-    return {
-        
-    }
+
+    author = blog.owner.username if blog.owner else None
+    blog_dict = blog.__dict__.copy()
+    blog_dict["author"] = author
+    return blog_dict
+
 
 # Update a blog post (PUT /blogs/{blog_id})
 @router.put("/{blog_id}", response_model=BlogResponse)
