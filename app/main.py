@@ -4,9 +4,7 @@ from app.models.base import Base, engine
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 
-# Import all your models to ensure they are registered with the Base
-from app.models import user, blog, faq
-from app.routers import faqs, users , blogs
+from app.routers import dashboard, faqs, users , blogs , contacts
 
 settings = get_settings()
 
@@ -30,5 +28,7 @@ Base.metadata.create_all(bind=engine)
 
 app.include_router(users.router)
 app.include_router(blogs.router)
-app.include_router(faqs.router) 
+app.include_router(faqs.router)
+app.include_router(contacts.router)
+app.include_router(dashboard.router) 
 app.mount("/static", StaticFiles(directory="static"), name="static")

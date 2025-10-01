@@ -6,8 +6,9 @@ from sqlalchemy import or_
 from app.models.user import RevokedToken
 from app.core.dependencies import oauth2_scheme 
 from app.core.dependencies import get_current_user, get_db_session
-from app.core.security import decode_access_token, get_password_hash, verify_password, create_access_token
+from app.core.security import decode_access_token, get_password_hash, verify_password, create_access_token , hash_password
 from app.models.user import User
+from app.schemas.auth import ChangePasswordIn
 from app.schemas.user import UserCreate, UserResponse
 
 from passlib.context import CryptContext
@@ -76,6 +77,34 @@ def logout(
         db.commit()
 
     return {"detail": "Logged out successfully"}
+
+
+@router.post("/change-password", status_code=status.HTTP_204_NO_CONTENT)
+def change_password(
+    payload: ChangePasswordIn,
+    db: Session = Depends(get_db_session),
+    current_user: User = Depends(get_current_user),
+):
+    # 1) verify current password
+    if not verify_password(payload.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Current password is incorrect")
+
+    # 2) must be different from old
+    if verify_password(payload.new_password, current_user.hashed_password):
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be different")
+
+    # 3) (optional) strengthen policy
+    if len(payload.new_password) < 8:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="New password must be at least 8 characters")
+
+    # 4) hash & save
+    current_user.hashed_password = hash_password(payload.new_password)
+    db.add(current_user)
+    db.commit()
+    # (optional) revoke tokens here if you maintain a blacklist or token_version
+    return  # 204
+
+
 
 ### Get Current User Endpoint (Protected) ###
 @router.get("/me", response_model=UserResponse)

@@ -1,18 +1,21 @@
 # app/core/config.py
-from pydantic_settings import BaseSettings
-from pydantic import Field
 from functools import lru_cache
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 class Settings(BaseSettings):
-    app_name: str = Field("BackendApp", env="APP_NAME")
-    environment: str = Field("development", env="ENVIRONMENT")
-    debug: bool = Field(True, env="DEBUG")
-    database_url: str = Field(..., env="DATABASE_URL")
+    app_name: str = "BackendApp"
+    environment: str = "development"
+    debug: bool = True
+    database_url: str
+    secret_key: str
+    algorithm: str
 
-    class Config:
-        env_file = ".env"
-        extra = "ignore"
+    # v2-style config
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        extra="ignore",      # ignore any .env keys you haven't declared
+    )
 
 @lru_cache()
-def get_settings() -> Settings:
+def get_settings() -> "Settings":
     return Settings()

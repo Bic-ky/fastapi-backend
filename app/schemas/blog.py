@@ -27,4 +27,4 @@ class BlogResponse(BaseModel):
     author: Optional[str] = None  # <-- add this
 
     class Config:
-        orm_mode = True
+        from_attributes = True

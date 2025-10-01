@@ -105,6 +105,7 @@ dmypy.json
 .env
 .env.*
 *.sqlite3
+static/
 
 # VS Code
 .vscode/

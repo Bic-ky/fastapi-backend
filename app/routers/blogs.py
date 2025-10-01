@@ -81,7 +81,7 @@ def get_all_blogs(db: Session = Depends(get_db_session)):
     return blog_list
 
 # app/routers/blogs.py (or wherever your router is)
-@router.get("/{blog_id}", response_model=BlogResponse)
+@router.get("/blog-id/{blog_id}", response_model=BlogResponse)
 def get_blog(
     blog_id: int,
     db: Session = Depends(get_db_session)
@@ -97,7 +97,7 @@ def get_blog(
 
 
 # Update a blog post (PUT /blogs/{blog_id})
-@router.put("/{blog_id}", response_model=BlogResponse)
+@router.put("/update/{blog_id}", response_model=BlogResponse)
 def update_blog(
     blog_id: int,
     blog_update: BlogUpdate,
@@ -125,7 +125,7 @@ def update_blog(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
 
 # Delete a blog post (DELETE /blogs/{blog_id})
-@router.delete("/{blog_id}", status_code=status.HTTP_204_NO_CONTENT)
+@router.delete("/delete/{blog_id}", status_code=status.HTTP_204_NO_CONTENT)
 def delete_blog(
     blog_id: int,
     db: Session = Depends(get_db_session),
